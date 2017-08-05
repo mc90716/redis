@@ -781,8 +781,12 @@ void activeExpireCycle(int type) {
         /* Don't start a fast cycle if the previous cycle did not exited
          * for time limt. Also don't repeat a fast cycle for the same period
          * as the fast cycle total duration itself. */
-        if (!timelimit_exit) return;
-        if (start < last_fast_cycle + ACTIVE_EXPIRE_CYCLE_FAST_DURATION*2) return;
+        if (!timelimit_exit) {
+        	return;
+        }
+        if (start < last_fast_cycle + ACTIVE_EXPIRE_CYCLE_FAST_DURATION*2) {
+        	return;
+        }
         last_fast_cycle = start;
     }
 
@@ -846,13 +850,18 @@ void activeExpireCycle(int type) {
             if (num > ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP)
                 num = ACTIVE_EXPIRE_CYCLE_LOOKUPS_PER_LOOP;
 
+            //随机取20个过期的key，然后进行过期处理，感觉redis好low
             while (num--) {
                 dictEntry *de;
                 long long ttl;
 
-                if ((de = dictGetRandomKey(db->expires)) == NULL) break;
+                if ((de = dictGetRandomKey(db->expires)) == NULL) {
+                	break;
+                }
                 ttl = dictGetSignedIntegerVal(de)-now;
-                if (activeExpireCycleTryExpire(db,de,now)) expired++;
+                if (activeExpireCycleTryExpire(db,de,now)) {
+                	expired++;
+                }
                 if (ttl > 0) {
                     /* We want the average TTL of keys yet not expired. */
                     ttl_sum += ttl;
@@ -2016,9 +2025,9 @@ void initServer(void) {
      */
     for (j = 0; j < server.ipfd_count; j++) {
     	/**
-    	 * acceptTcpHandler是server eventloop 里面event数组的处理handler
+    	 * acceptTcpHandler是server eventloop 里面event数组的处理handler，将Read事件注册到感兴趣的事件集合中
     	 */
-        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, acceptTcpHandler,NULL) == AE_ERR) {
+        if (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE, acceptTcpHandler, NULL) == AE_ERR) {
              serverPanic("Unrecoverable error creating server.ipfd file event.");
          }
     }
@@ -2340,6 +2349,10 @@ void call(client *c, int flags) {
     }
 
     /* Propagate the command into the AOF and replication link */
+
+    /**
+     * 把要执行的命令写到AOF中以及写到slave的列表中，然后发送给slave执行对应的命令
+     */
     if (flags & CMD_CALL_PROPAGATE &&
         (c->flags & CLIENT_PREVENT_PROP) != CLIENT_PREVENT_PROP)
     {
@@ -2366,6 +2379,7 @@ void call(client *c, int flags) {
 
         /* Call propagate() only if at least one of AOF / replication
          * propagation is needed. */
+        //把命令给AOF和slave
         if (propagate_flags != PROPAGATE_NONE)
             propagate(c->cmd,c->db->id,c->argv,c->argc,propagate_flags);
     }
@@ -2578,6 +2592,7 @@ int processCommand(client *c) {
     }
 
     /* Exec the command */
+    //真正执行命令的是call
     if (c->flags & CLIENT_MULTI &&
         c->cmd->proc != execCommand && c->cmd->proc != discardCommand &&
         c->cmd->proc != multiCommand && c->cmd->proc != watchCommand)
@@ -3856,9 +3871,14 @@ void memtest(size_t megabytes, int passes);
 int checkForSentinelMode(int argc, char **argv) {
     int j;
 
-    if (strstr(argv[0],"redis-sentinel") != NULL) return 1;
-    for (j = 1; j < argc; j++)
-        if (!strcmp(argv[j],"--sentinel")) return 1;
+    if (strstr(argv[0],"redis-sentinel") != NULL) {
+    	return 1;
+    }
+    for (j = 1; j < argc; j++) {
+        if (!strcmp(argv[j],"--sentinel")) {
+        	return 1;
+        }
+    }
     return 0;
 }
 
@@ -4128,6 +4148,7 @@ int main(int argc, char **argv) {
             exit(1);
         }
         resetServerSaveParams();
+        //初始化server配置信息
         loadServerConfig(configfile,options);
         sdsfree(options);
     } else {
@@ -4180,6 +4201,10 @@ int main(int argc, char **argv) {
     }
 
     aeSetBeforeSleepProc(server.el,beforeSleep);
+
+    /**
+     * 处理事件：时间类型事件和socket读写事件
+     */
     aeMain(server.el);
     aeDeleteEventLoop(server.el);
     return 0;

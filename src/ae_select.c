@@ -66,9 +66,9 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
     aeApiState *state = eventLoop->apidata;
 
     if (mask & AE_READABLE)
-    	FD_SET(fd,&state->rfds);
+    	FD_SET(fd,&state->rfds);  //将fd添加到rfds集合中
     if (mask & AE_WRITABLE)
-    	FD_SET(fd,&state->wfds);
+    	FD_SET(fd,&state->wfds);  //将fd添加到wfds集合中
     return 0;
 }
 

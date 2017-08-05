@@ -696,6 +696,7 @@ void acceptTcpHandler(aeEventLoop *el, int fd, void *privdata, int mask) {
     UNUSED(privdata);
 
     while(max--) {
+    	//cfd为accept的返回
         cfd = anetTcpAccept(server.neterr, fd, cip, sizeof(cip), &cport);
         if (cfd == ANET_ERR) {
             if (errno != EWOULDBLOCK)
@@ -1269,6 +1270,9 @@ int processMultibulkBuffer(client *c) {
     return C_ERR;
 }
 
+/**
+ * 处理Client的命令请求
+ */
 void processInputBuffer(client *c) {
     server.current_client = c;
     /* Keep processing while there is something in the input buffer */
@@ -1387,6 +1391,7 @@ void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) {
         freeClient(c);
         return;
     }
+    //处理Client的命令请求
     processInputBuffer(c);
 }
 

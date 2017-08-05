@@ -170,6 +170,9 @@ void feedReplicationBacklogWithObject(robj *o) {
     feedReplicationBacklog(p,len);
 }
 
+/**
+ * 命令写到slave对应的client的输入队列中，然后由epoll将命令发送出去，发送的时候就是addReply了
+ */
 void replicationFeedSlaves(list *slaves, int dictid, robj **argv, int argc) {
     listNode *ln;
     listIter li;

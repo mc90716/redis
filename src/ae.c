@@ -60,12 +60,17 @@
     #endif
 #endif
 
+/**
+ * 初始化EventLoop
+ */
 aeEventLoop *aeCreateEventLoop(int setsize) {
     aeEventLoop *eventLoop;
     int i;
 
     if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) goto err;
+    //初始化分配文件事件结构体
     eventLoop->events = zmalloc(sizeof(aeFileEvent)*setsize);
+    //分配已触发事件结构体
     eventLoop->fired = zmalloc(sizeof(aeFiredEvent)*setsize);
     if (eventLoop->events == NULL || eventLoop->fired == NULL) goto err;
     eventLoop->setsize = setsize;
@@ -75,6 +80,7 @@ aeEventLoop *aeCreateEventLoop(int setsize) {
     eventLoop->stop = 0;
     eventLoop->maxfd = -1;
     eventLoop->beforesleep = NULL;
+    //创建select或者epoll实例
     if (aeApiCreate(eventLoop) == -1) goto err;
     /* Events with mask == AE_NONE are not set. So let's initialize the
      * vector with it. */
@@ -132,6 +138,9 @@ void aeStop(aeEventLoop *eventLoop) {
     eventLoop->stop = 1;
 }
 
+/**
+ * 把感兴趣的事件添加到eventloop的event数组中，并添加事件处理函数
+ */
 int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc, void *clientData)
 {
     if (fd >= eventLoop->setsize) {
@@ -143,6 +152,7 @@ int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc
     if (aeApiAddEvent(eventLoop, fd, mask) == -1)
         return AE_ERR;
     fe->mask |= mask;
+    //添加事件处理函数
     if (mask & AE_READABLE) {
     	fe->rfileProc = proc;
     }
@@ -405,6 +415,10 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags)
             }
         }
 
+        /**
+         * 进行select处理，将准备好的事件放到eventLoop的fired数组中
+         * 然后判断事件是读还是写类型，分别进行处理
+         */
         numevents = aeApiPoll(eventLoop, tvp);
         for (j = 0; j < numevents; j++) {
             aeFileEvent *fe = &eventLoop->events[eventLoop->fired[j].fd];
